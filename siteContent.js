@@ -44,10 +44,10 @@ var SITE = {
 
   // ─── VÍDEO PRINCIPAL (HERO) ───────────────────────────────
   hero: {
-    streamUid:       CLOUDFLARE_STREAM_VIDEO_ID,
-    streamIframeSrc: 'https://customer-' + CLOUDFLARE_STREAM_CUSTOMER_CODE + '.cloudflarestream.com/' + CLOUDFLARE_STREAM_VIDEO_ID + '/iframe?autoplay=true&muted=true&loop=true&poster=' + encodeURIComponent(CLOUDFLARE_ASSETS.heroPoster),
-    watchUrl:        'https://customer-' + CLOUDFLARE_STREAM_CUSTOMER_CODE + '.cloudflarestream.com/' + CLOUDFLARE_STREAM_VIDEO_ID + '/watch',
-    posterImage:     CLOUDFLARE_ASSETS.heroPoster,
+    streamUid:        CLOUDFLARE_STREAM_VIDEO_ID,
+    streamHlsUrl:     'https://customer-' + CLOUDFLARE_STREAM_CUSTOMER_CODE + '.cloudflarestream.com/' + CLOUDFLARE_STREAM_VIDEO_ID + '/manifest/video.m3u8',
+    watchUrl:         'https://customer-' + CLOUDFLARE_STREAM_CUSTOMER_CODE + '.cloudflarestream.com/' + CLOUDFLARE_STREAM_VIDEO_ID + '/watch',
+    posterImage:      CLOUDFLARE_ASSETS.heroPoster,
   },
 
   // ─── TEMPORADAS ───────────────────────────────────────────

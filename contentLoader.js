@@ -77,9 +77,10 @@
   }
 
   // ─── 3. HERO VIDEO + POSTER ──────────────────────────────
-  var heroPlayer = document.getElementById('stream-player');
-  if (heroPlayer && SITE.hero && SITE.hero.streamIframeSrc) {
-    heroPlayer.src = SITE.hero.streamIframeSrc;
+  var heroPlayer = document.getElementById('hero-stream-video');
+  if (heroPlayer && SITE.hero) {
+    if (SITE.hero.posterImage) heroPlayer.poster = SITE.hero.posterImage;
+    if (SITE.hero.streamHlsUrl) heroPlayer.setAttribute('data-hls-src', SITE.hero.streamHlsUrl);
   }
   var heroPoster = dc('hero-poster');
   if (heroPoster && SITE.hero && SITE.hero.posterImage) {

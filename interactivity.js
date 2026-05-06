@@ -9,9 +9,9 @@
   // ─── Controls start hidden via CSS (.hero-media2).
   //     The class "controls-visible" is added by JS after cover dismisses.
   var heroControls = document.querySelector('.hero-media2');
-  var streamFrame = document.getElementById('stream-player');
-  var streamPlayer = null;
+  var streamPlayer = document.getElementById('hero-stream-video');
   var streamReady = false;
+  var hlsPlayer = null;
 
   function updatePlayButton(isPlaying) {
     if (!playBtn) return;
@@ -55,8 +55,17 @@
     }
   }
 
-  if (streamFrame && typeof window.Stream === 'function') {
-    streamPlayer = window.Stream(streamFrame);
+  if (streamPlayer) {
+    var hlsSrc = streamPlayer.getAttribute('data-hls-src');
+    if (hlsSrc) {
+      if (streamPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+        streamPlayer.src = hlsSrc;
+      } else if (window.Hls && window.Hls.isSupported()) {
+        hlsPlayer = new window.Hls();
+        hlsPlayer.loadSource(hlsSrc);
+        hlsPlayer.attachMedia(streamPlayer);
+      }
+    }
     streamPlayer.muted = true;
     streamPlayer.autoplay = true;
     streamPlayer.loop = true;
@@ -87,7 +96,7 @@
   var streamWrap = document.getElementById('stream-player-wrap');
   if (streamWrap) {
     var style = document.createElement('style');
-    style.textContent = '#stream-player-wrap iframe,#stream-player-wrap video{width:100%!important;height:100%!important;position:absolute;top:0;left:0;border:0;}';
+    style.textContent = '#stream-player-wrap video{width:100%!important;height:100%!important;position:absolute;top:0;left:0;border:0;object-fit:cover;}';
     document.head.appendChild(style);
   }
   if (heroControls) {

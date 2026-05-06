@@ -10,41 +10,6 @@
   //     The class "controls-visible" is added by JS after cover dismisses.
   var heroControls = document.querySelector('.hero-media2');
   var streamFrame = document.getElementById('stream-player');
-  var streamPlayer = null;
-  var streamReady = false;
-  var coverEl = document.getElementById('player-cover');
-  var coverDismissed = false;
-  var coverFallback = null;
-
-  function dismissCover() {
-    if (coverDismissed) return;
-    coverDismissed = true;
-    if (coverFallback) {
-      clearTimeout(coverFallback);
-      coverFallback = null;
-    }
-    if (coverEl) {
-      coverEl.style.opacity = '0';
-      setTimeout(function () {
-        coverEl.style.display = 'none';
-        if (heroControls) heroControls.classList.add('controls-visible');
-      }, 700);
-    } else if (heroControls) {
-      heroControls.classList.add('controls-visible');
-    }
-  }
-
-  function safePlay() {
-    if (!streamPlayer) return;
-    var result = streamPlayer.play();
-    if (result && typeof result.catch === 'function') {
-      result.catch(function () {
-        streamPlayer.muted = true;
-        updateMuteButton(true);
-        return streamPlayer.play().catch(function () {});
-      });
-    }
-  }
 
   function updatePlayButton(isPlaying) {
     if (!playBtn) return;
@@ -74,65 +39,22 @@
     }
   }
 
-  if (streamFrame && typeof window.Stream === 'function') {
-    streamPlayer = window.Stream(streamFrame);
-    coverFallback = setTimeout(dismissCover, 20000);
-
-    streamPlayer.muted = true;
-    streamPlayer.autoplay = true;
-    streamPlayer.loop = true;
-    updateMuteButton(true);
-    safePlay();
-
-    streamPlayer.addEventListener('loadedmetadata', function () {
-      streamReady = true;
-    });
-
-    streamPlayer.addEventListener('loadeddata', function () {
-      dismissCover();
-    });
-
-    streamPlayer.addEventListener('canplay', function () {
-      safePlay();
-    });
-
-    streamPlayer.addEventListener('playing', function () {
-      dismissCover();
-      updatePlayButton(true);
-    });
-    streamPlayer.addEventListener('play', function () {
-      updatePlayButton(true);
-    });
-    streamPlayer.addEventListener('pause', function () {
-      updatePlayButton(false);
-    });
-    streamPlayer.addEventListener('ended', function () {
-      updatePlayButton(false);
-    });
-    streamPlayer.addEventListener('volumechange', function () {
-      updateMuteButton(!!streamPlayer.muted);
-    });
-  } else {
-    dismissCover();
-  }
-
   var streamWrap = document.getElementById('stream-player-wrap');
   if (streamWrap) {
     var style = document.createElement('style');
     style.textContent = '#stream-player-wrap iframe,#stream-player-wrap video{width:100%!important;height:100%!important;position:absolute;top:0;left:0;border:0;}';
     document.head.appendChild(style);
   }
+  if (heroControls) {
+    heroControls.classList.add('controls-visible');
+  }
 
   // ─── Play / Pause ─────────────────────────────────────────
   var playBtn = q('button[aria-label="Assistir"]');
   if (playBtn) {
     playBtn.addEventListener('click', function () {
-      if (!streamPlayer || !streamReady) return;
-      if (streamPlayer.paused) {
-        safePlay();
-      } else {
-        streamPlayer.pause();
-      }
+      if (!streamFrame || !streamFrame.contentWindow) return;
+      streamFrame.contentWindow.postMessage({ method: 'play' }, '*');
     });
   }
 
@@ -140,9 +62,9 @@
   var muteBtn = q('button[aria-label="Sair do modo silencioso"]');
   if (muteBtn) {
     muteBtn.addEventListener('click', function () {
-      if (!streamPlayer || !streamReady) return;
-      streamPlayer.muted = !streamPlayer.muted;
-      updateMuteButton(!!streamPlayer.muted);
+      if (!streamFrame || !streamFrame.contentWindow) return;
+      streamFrame.contentWindow.postMessage({ method: 'mute' }, '*');
+      updateMuteButton(true);
     });
   }
 
@@ -177,9 +99,9 @@
   var replayBtn = q('button[aria-label="Reiniciar vídeo"]');
   if (replayBtn) {
     replayBtn.addEventListener('click', function () {
-      if (!streamPlayer || !streamReady) return;
-      streamPlayer.currentTime = 0;
-      safePlay();
+      if (!streamFrame || !streamFrame.contentWindow) return;
+      streamFrame.contentWindow.postMessage({ method: 'seek', value: 0 }, '*');
+      streamFrame.contentWindow.postMessage({ method: 'play' }, '*');
     });
   }
 

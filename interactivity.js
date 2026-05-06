@@ -10,6 +10,8 @@
   //     The class "controls-visible" is added by JS after cover dismisses.
   var heroControls = document.querySelector('.hero-media2');
   var streamFrame = document.getElementById('stream-player');
+  var streamPlayer = null;
+  var streamReady = false;
 
   function updatePlayButton(isPlaying) {
     if (!playBtn) return;
@@ -39,6 +41,49 @@
     }
   }
 
+  function safePlay() {
+    if (!streamPlayer) return;
+    var result = streamPlayer.play();
+    if (result && typeof result.catch === 'function') {
+      result.catch(function () {
+        try {
+          streamPlayer.muted = true;
+          updateMuteButton(true);
+          return streamPlayer.play();
+        } catch (_) {}
+      });
+    }
+  }
+
+  if (streamFrame && typeof window.Stream === 'function') {
+    streamPlayer = window.Stream(streamFrame);
+    streamPlayer.muted = true;
+    streamPlayer.autoplay = true;
+    streamPlayer.loop = true;
+    updateMuteButton(true);
+
+    streamPlayer.addEventListener('loadedmetadata', function () {
+      streamReady = true;
+      safePlay();
+    });
+
+    streamPlayer.addEventListener('play', function () {
+      updatePlayButton(true);
+    });
+
+    streamPlayer.addEventListener('pause', function () {
+      updatePlayButton(false);
+    });
+
+    streamPlayer.addEventListener('ended', function () {
+      updatePlayButton(false);
+    });
+
+    streamPlayer.addEventListener('volumechange', function () {
+      updateMuteButton(!!streamPlayer.muted);
+    });
+  }
+
   var streamWrap = document.getElementById('stream-player-wrap');
   if (streamWrap) {
     var style = document.createElement('style');
@@ -53,8 +98,12 @@
   var playBtn = q('button[aria-label="Assistir"]');
   if (playBtn) {
     playBtn.addEventListener('click', function () {
-      if (!streamFrame || !streamFrame.contentWindow) return;
-      streamFrame.contentWindow.postMessage({ method: 'play' }, '*');
+      if (!streamPlayer || !streamReady) return;
+      if (streamPlayer.paused) {
+        safePlay();
+      } else {
+        streamPlayer.pause();
+      }
     });
   }
 
@@ -62,9 +111,9 @@
   var muteBtn = q('button[aria-label="Sair do modo silencioso"]');
   if (muteBtn) {
     muteBtn.addEventListener('click', function () {
-      if (!streamFrame || !streamFrame.contentWindow) return;
-      streamFrame.contentWindow.postMessage({ method: 'mute' }, '*');
-      updateMuteButton(true);
+      if (!streamPlayer || !streamReady) return;
+      streamPlayer.muted = !streamPlayer.muted;
+      updateMuteButton(!!streamPlayer.muted);
     });
   }
 
@@ -99,9 +148,9 @@
   var replayBtn = q('button[aria-label="Reiniciar vídeo"]');
   if (replayBtn) {
     replayBtn.addEventListener('click', function () {
-      if (!streamFrame || !streamFrame.contentWindow) return;
-      streamFrame.contentWindow.postMessage({ method: 'seek', value: 0 }, '*');
-      streamFrame.contentWindow.postMessage({ method: 'play' }, '*');
+      if (!streamPlayer || !streamReady) return;
+      streamPlayer.currentTime = 0;
+      safePlay();
     });
   }
 

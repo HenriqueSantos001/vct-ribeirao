@@ -12,7 +12,6 @@
     gtag('config', 'G-ZSZ6N9HYD7');
     </script>
 
-
     <base href="/vct-ribeirao/" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta charset="utf-8" />
@@ -35,7 +34,7 @@
     />
     <meta
       property="og:image"
-      content="https://santos-games.com/vct-ribeirao/images/opengraph/capa-og-image-op2.jpg"
+      content="https://cdn.santos-games.com/campeonatos/vct/capa-og-image-op2-f5e2eb84.webp"
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -54,7 +53,7 @@
     />
     <meta
       name="twitter:image"
-      content="https://santos-games.com/vct-ribeirao/images/opengraph/capa-og-image-op2.jpg"
+      content="https://cdn.santos-games.com/campeonatos/vct/capa-og-image-op2-f5e2eb84.webp"
     />
 
     <!-- Google Tag Manager -->
@@ -228,7 +227,8 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: url("images/capa01.png") center / cover no-repeat;
+        background: url("https://cdn.santos-games.com/campeonatos/vct/capa01-ef93209a.avif")
+          center / cover no-repeat;
         background-color: #0f0f0f;
         z-index: 5;
         pointer-events: none;
@@ -420,11 +420,11 @@
               ><img
                 alt=""
                 data-content="hero-poster"
-                src="images/capa01.png"
+                src="https://cdn.santos-games.com/campeonatos/vct/capa01-ef93209a.avif"
                 srcset="
-                  images/capa01.png  960w,
-                  images/capa01.png 1260w,
-                  images/capa01.png 1920w
+                  https://cdn.santos-games.com/campeonatos/vct/capa01-ef93209a.avif 960w,
+                  https://cdn.santos-games.com/campeonatos/vct/capa01-ef93209a.avif 1260w,
+                  https://cdn.santos-games.com/campeonatos/vct/capa01-ef93209a.avif 1920w
                 "
                 class="default-ltr-iqcdef-cache-153nli6 media-layer0"
               />
@@ -496,13 +496,6 @@
                   }
                 }
               </style>
-              <div
-                id="yt-bg-player-wrap"
-                class="default-ltr-iqcdef-cache-c0xhoc media-layer1"
-                style="overflow: hidden"
-              >
-                <div id="yt-bg-player"></div>
-              </div>
             </div>
             <style data-emotion="default-ltr-iqcdef-cache 1lpif8u">
               .default-ltr-iqcdef-cache-1lpif8u {
@@ -657,7 +650,7 @@
                   <div class="default-ltr-iqcdef-cache-1goop71 site-header3">
                     <a href="/vct-ribeirao/" class="app-logo" data-uia="header-svg-logo"
                       ><img
-                        src="images/sga-logo.png"
+                        src="https://cdn.santos-games.com/campeonatos/vct/sga-logo-2ad81630.avif"
                         alt="Logo"
                         class="logo-img"
                       /><span class="screen-reader-text"
@@ -679,7 +672,7 @@
                   <div class="default-ltr-iqcdef-cache-sl8byr site-header2">
                     <a href="/vct-ribeirao/" class="app-logo" data-uia="header-svg-logo"
                       ><img
-                        src="images/sga-logo.png"
+                        src="https://cdn.santos-games.com/campeonatos/vct/sga-logo-2ad81630.avif"
                         alt="Logo"
                         class="logo-img"
                       /><span class="screen-reader-text"
@@ -2520,7 +2513,7 @@
                                 }
                               </style>
                               <div
-                                id="yt-player-wrap"
+                                id="stream-player-wrap"
                                 data-content="player-video"
                                 style="
                                   width: 100%;
@@ -2531,7 +2524,14 @@
                                   overflow: hidden;
                                 "
                               >
-                                <div id="yt-player"></div>
+                                <iframe
+                                  id="stream-player"
+                                  src="https://customer-henwoji2e791u0w5.cloudflarestream.com/0c5595f6a6651e483fe757969d226380/iframe?autoplay=true&muted=true&loop=true&poster=https%3A%2F%2Fcdn.santos-games.com%2Fcampeonatos%2Fvct%2Fcapa01-ef93209a.avif"
+                                  title="VCT RP 4ª Edição"
+                                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                                  allowfullscreen
+                                  style="border: none"
+                                ></iframe>
                                 <div id="player-cover" aria-hidden="true"></div>
                               </div>
                               <style
@@ -19160,7 +19160,7 @@
     <script defer src="siteContent.js"></script>
     <script defer src="contentLoader.js"></script>
     <script defer src="episodes-carousel.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://embed.cloudflarestream.com/embed/sdk.latest.js"></script>
     <script defer src="interactivity.js"></script>
   </body>
 </html>

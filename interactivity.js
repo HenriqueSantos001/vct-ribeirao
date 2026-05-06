@@ -6,186 +6,109 @@
   function qa(sel) { return document.querySelectorAll(sel); }
   function dc(key) { return q('[data-content="' + key + '"]'); }
 
-  // ─── Background YouTube player (blurred backdrop) ─────────
-  var bgPlayer = null;
-  var bgReady  = false;
-
   // ─── Controls start hidden via CSS (.hero-media2).
   //     The class "controls-visible" is added by JS after cover dismisses.
   var heroControls = document.querySelector('.hero-media2');
+  var streamFrame = document.getElementById('stream-player');
+  var streamPlayer = null;
+  var streamReady = false;
+  var coverEl = document.getElementById('player-cover');
+  var coverDismissed = false;
+  var coverFallback = null;
 
-  // ─── YouTube Player (main player) ─────────────────────────
-  var ytPlayer = null;
-  var ytReady  = false;
-
-  // Wait for the YT IFrame API to finish loading
-  function initYouTube() {
-    // ── Cover & warmup state machine ─────────────────────────
-    //   cover-active    → cover visible, waiting for first PLAYING
-    //   warmup-playing  → video playing, counting 3 s of real playback
-    //   controls-ready  → cover gone, controls visible
-    var coverEl      = document.getElementById('player-cover');
-    var coverPhase   = 'cover-active';
-    var WARMUP_MS    = 2000;          // real playback before cover fades
-    var warmupElapsed   = 0;          // accumulated playback ms
-    var warmupStartedAt = 0;          // Date.now() when segment began
-    var warmupTimer     = null;
-
-    function dismissCover() {
-      if (coverPhase === 'controls-ready') return;
-      coverPhase = 'controls-ready';
-      if (warmupTimer) { clearTimeout(warmupTimer); warmupTimer = null; }
-      if (coverEl) {
-        coverEl.style.opacity = '0';
-        setTimeout(function () {
-          coverEl.style.display = 'none';
-          if (heroControls) heroControls.classList.add('controls-visible');
-        }, 700);
-      }
+  function dismissCover() {
+    if (coverDismissed) return;
+    coverDismissed = true;
+    if (coverFallback) {
+      clearTimeout(coverFallback);
+      coverFallback = null;
     }
-
-    // Resume / start the warmup countdown
-    function warmupResume() {
-      warmupStartedAt = Date.now();
-      var remaining = WARMUP_MS - warmupElapsed;
-      if (remaining <= 0) { dismissCover(); return; }
-      warmupTimer = setTimeout(dismissCover, remaining);
+    if (coverEl) {
+      coverEl.style.opacity = '0';
+      setTimeout(function () {
+        coverEl.style.display = 'none';
+        if (heroControls) heroControls.classList.add('controls-visible');
+      }, 700);
+    } else if (heroControls) {
+      heroControls.classList.add('controls-visible');
     }
-
-    // Pause the warmup countdown (buffering / unexpected pause)
-    function warmupPause() {
-      if (warmupTimer) { clearTimeout(warmupTimer); warmupTimer = null; }
-      if (warmupStartedAt) {
-        warmupElapsed += Date.now() - warmupStartedAt;
-        warmupStartedAt = 0;
-      }
-    }
-
-    // Fallback: dismiss cover after 20 s if PLAYING never fires
-    var coverFallback = setTimeout(dismissCover, 20000);
-
-    // ── Create background YouTube player (muted, no controls) ─
-    bgPlayer = new YT.Player('yt-bg-player', {
-      videoId: 'ESbObW2c5HY',
-      playerVars: {
-        autoplay: 0, mute: 1, controls: 0, modestbranding: 1,
-        rel: 0, showinfo: 0, playsinline: 1, enablejsapi: 1,
-        loop: 1, playlist: 'ESbObW2c5HY',
-        origin: window.location.origin
-      },
-      events: {
-        onReady: function () {
-          bgReady = true;
-          // Main player may already be playing (race condition) — sync immediately
-          if (ytReady && ytPlayer) {
-            try {
-              var state = ytPlayer.getPlayerState();
-              if (state === YT.PlayerState.PLAYING) {
-                var t = ytPlayer.getCurrentTime();
-                bgPlayer.seekTo(t, true);
-                bgPlayer.playVideo();
-              }
-            } catch (_) {}
-          }
-        }
-      }
-    });
-
-    // ── Style bg player iframe to fill container ─────────────
-    var bgStyle = document.createElement('style');
-    bgStyle.textContent = '#yt-bg-player-wrap iframe{width:100%!important;height:100%!important;position:absolute;top:0;left:0;border:0;pointer-events:none;}';
-    document.head.appendChild(bgStyle);
-
-    // ── Create main YouTube player ──────────────────────────
-    ytPlayer = new YT.Player('yt-player', {
-      videoId: 'ESbObW2c5HY',
-      playerVars: {
-        autoplay: 0,
-        mute: 1,
-        controls: 0,
-        modestbranding: 1,
-        rel: 0,
-        showinfo: 0,
-        playsinline: 1,
-        enablejsapi: 1,
-        loop: 1,
-        playlist: 'ESbObW2c5HY',
-        origin: window.location.origin
-      },
-      events: {
-        onReady: function () {
-          ytReady = true;
-          ytPlayer.playVideo();
-          // Also start bg player in sync
-          if (bgReady && bgPlayer) bgPlayer.playVideo();
-        },
-        onStateChange: function (e) {
-          // ── Cover warmup state machine ────────────────────
-          if (coverPhase !== 'controls-ready') {
-            if (e.data === YT.PlayerState.PLAYING) {
-              if (coverPhase === 'cover-active') {
-                coverPhase = 'warmup-playing';
-                clearTimeout(coverFallback);
-              }
-              warmupResume();
-            } else if (coverPhase === 'warmup-playing') {
-              warmupPause();
-            }
-          }
-
-          // ── Sync background YouTube player with main ──────
-          if (bgReady && bgPlayer) {
-            if (e.data === YT.PlayerState.PLAYING) {
-              // Sync time then play
-              try {
-                var t = ytPlayer.getCurrentTime();
-                if (Math.abs(bgPlayer.getCurrentTime() - t) > 1) {
-                  bgPlayer.seekTo(t, true);
-                }
-              } catch (_) {}
-              bgPlayer.playVideo();
-            } else if (e.data === YT.PlayerState.PAUSED) {
-              bgPlayer.pauseVideo();
-            } else if (e.data === YT.PlayerState.ENDED) {
-              bgPlayer.pauseVideo();
-            }
-          }
-
-          // Keep play/pause icon synced when state changes
-          if (!playBtn) return;
-          var svg = playBtn.querySelector('svg');
-          if (!svg) return;
-          if (e.data === YT.PlayerState.PLAYING) {
-            playBtn.setAttribute('aria-label', 'Pausar');
-            svg.setAttribute('data-icon', 'PauseMedium');
-            svg.innerHTML = '<path fill="currentColor" fill-rule="evenodd" d="M4.5 3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zm10 0a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h4.5a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z" clip-rule="evenodd"></path>';
-          } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
-            playBtn.setAttribute('aria-label', 'Assistir');
-            svg.setAttribute('data-icon', 'PlayMedium');
-            svg.innerHTML = '<path fill="currentColor" d="M5 2.7a1 1 0 0 1 1.48-.88l16.93 9.3a1 1 0 0 1 0 1.76l-16.93 9.3A1 1 0 0 1 5 21.31z"></path>';
-          }
-        }
-      }
-    });
   }
 
-  // The API calls this global callback when ready
-  if (typeof window.onYouTubeIframeAPIReady === 'undefined') {
-    window.onYouTubeIframeAPIReady = initYouTube;
+  function safePlay() {
+    if (!streamPlayer || !streamReady) return;
+    var result = streamPlayer.play();
+    if (result && typeof result.catch === 'function') {
+      result.catch(function () {
+        streamPlayer.muted = true;
+        updateMuteButton(true);
+        return streamPlayer.play().catch(function () {});
+      });
+    }
+  }
+
+  function updatePlayButton(isPlaying) {
+    if (!playBtn) return;
+    var svg = playBtn.querySelector('svg');
+    if (!svg) return;
+    if (isPlaying) {
+      playBtn.setAttribute('aria-label', 'Pausar');
+      svg.setAttribute('data-icon', 'PauseMedium');
+      svg.innerHTML = '<path fill="currentColor" fill-rule="evenodd" d="M4.5 3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zm10 0a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h4.5a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z" clip-rule="evenodd"></path>';
+    } else {
+      playBtn.setAttribute('aria-label', 'Assistir');
+      svg.setAttribute('data-icon', 'PlayMedium');
+      svg.innerHTML = '<path fill="currentColor" d="M5 2.7a1 1 0 0 1 1.48-.88l16.93 9.3a1 1 0 0 1 0 1.76l-16.93 9.3A1 1 0 0 1 5 21.31z"></path>';
+    }
+  }
+
+  function updateMuteButton(isMuted) {
+    if (!muteBtn) return;
+    muteBtn.setAttribute('aria-label', isMuted ? 'Sair do modo silencioso' : 'Silenciar');
+    var svg = muteBtn.querySelector('svg');
+    if (!svg) return;
+    svg.setAttribute('data-icon', isMuted ? 'VolumeOffMedium' : 'VolumeMedium');
+    if (isMuted) {
+      svg.innerHTML = '<path fill="currentColor" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zm9.6 0 2.29 2.3-2.3 2.3 1.42 1.4L19 13.42l2.3 2.3 1.4-1.42-2.28-2.3 2.3-2.3-1.42-1.4-2.3 2.28-2.3-2.3z" clip-rule="evenodd"></path>';
+    } else {
+      svg.innerHTML = '<path fill="currentColor" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zm10.8-2.2a8 8 0 0 1 0 9 1 1 0 1 1-1.7-1.06 6 6 0 0 0 0-6.88 1 1 0 1 1 1.7-1.06M19.1 4a12 12 0 0 1 0 16A1 1 0 0 1 17.6 18.5a10 10 0 0 0 0-13 1 1 0 1 1 1.5-1.5" clip-rule="evenodd"></path>';
+    }
+  }
+
+  if (streamFrame && typeof window.Stream === 'function') {
+    streamPlayer = window.Stream(streamFrame);
+    coverFallback = setTimeout(dismissCover, 20000);
+
+    streamPlayer.addEventListener('loadedmetadata', function () {
+      streamReady = true;
+      streamPlayer.muted = true;
+      updateMuteButton(true);
+      safePlay();
+    });
+
+    streamPlayer.addEventListener('playing', function () {
+      dismissCover();
+      updatePlayButton(true);
+    });
+    streamPlayer.addEventListener('play', function () {
+      updatePlayButton(true);
+    });
+    streamPlayer.addEventListener('pause', function () {
+      updatePlayButton(false);
+    });
+    streamPlayer.addEventListener('ended', function () {
+      updatePlayButton(false);
+    });
+    streamPlayer.addEventListener('volumechange', function () {
+      updateMuteButton(!!streamPlayer.muted);
+    });
   } else {
-    // API already loaded (unlikely with defer, but safe)
-    var _origCb = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = function () {
-      if (_origCb) _origCb();
-      initYouTube();
-    };
+    dismissCover();
   }
 
-  // Style the YouTube iframe to fill its container
-  var ytWrap = document.getElementById('yt-player-wrap');
-  if (ytWrap) {
+  var streamWrap = document.getElementById('stream-player-wrap');
+  if (streamWrap) {
     var style = document.createElement('style');
-    style.textContent = '#yt-player-wrap iframe,#yt-player-wrap video{width:100%!important;height:100%!important;position:absolute;top:0;left:0;border:0;}';
+    style.textContent = '#stream-player-wrap iframe,#stream-player-wrap video{width:100%!important;height:100%!important;position:absolute;top:0;left:0;border:0;}';
     document.head.appendChild(style);
   }
 
@@ -193,12 +116,11 @@
   var playBtn = q('button[aria-label="Assistir"]');
   if (playBtn) {
     playBtn.addEventListener('click', function () {
-      if (!ytPlayer || !ytReady) return;
-      var state = ytPlayer.getPlayerState();
-      if (state === YT.PlayerState.PLAYING) {
-        ytPlayer.pauseVideo();
+      if (!streamPlayer || !streamReady) return;
+      if (streamPlayer.paused) {
+        safePlay();
       } else {
-        ytPlayer.playVideo();
+        streamPlayer.pause();
       }
     });
   }
@@ -207,25 +129,9 @@
   var muteBtn = q('button[aria-label="Sair do modo silencioso"]');
   if (muteBtn) {
     muteBtn.addEventListener('click', function () {
-      if (!ytPlayer || !ytReady) return;
-      var isMuted = ytPlayer.isMuted();
-      if (isMuted) {
-        ytPlayer.unMute();
-        ytPlayer.setVolume(100);
-      } else {
-        ytPlayer.mute();
-      }
-      var nowMuted = !isMuted;
-      muteBtn.setAttribute('aria-label', nowMuted ? 'Sair do modo silencioso' : 'Silenciar');
-      var svg = muteBtn.querySelector('svg');
-      if (svg) {
-        svg.setAttribute('data-icon', nowMuted ? 'VolumeOffMedium' : 'VolumeMedium');
-        if (nowMuted) {
-          svg.innerHTML = '<path fill="currentColor" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zm9.6 0 2.29 2.3-2.3 2.3 1.42 1.4L19 13.42l2.3 2.3 1.4-1.42-2.28-2.3 2.3-2.3-1.42-1.4-2.3 2.28-2.3-2.3z" clip-rule="evenodd"></path>';
-        } else {
-          svg.innerHTML = '<path fill="currentColor" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zm10.8-2.2a8 8 0 0 1 0 9 1 1 0 1 1-1.7-1.06 6 6 0 0 0 0-6.88 1 1 0 1 1 1.7-1.06M19.1 4a12 12 0 0 1 0 16A1 1 0 0 1 17.6 18.5a10 10 0 0 0 0-13 1 1 0 1 1 1.5-1.5" clip-rule="evenodd"></path>';
-        }
-      }
+      if (!streamPlayer || !streamReady) return;
+      streamPlayer.muted = !streamPlayer.muted;
+      updateMuteButton(!!streamPlayer.muted);
     });
   }
 
@@ -233,7 +139,7 @@
   var expandBtn = q('button[aria-label="Expandir"]');
   if (expandBtn) {
     expandBtn.addEventListener('click', function () {
-      var container = document.getElementById('yt-player-wrap');
+      var container = document.getElementById('stream-player-wrap');
       if (!container) return;
       if (document.fullscreenElement) {
         document.exitFullscreen();
@@ -260,14 +166,9 @@
   var replayBtn = q('button[aria-label="Reiniciar vídeo"]');
   if (replayBtn) {
     replayBtn.addEventListener('click', function () {
-      if (!ytPlayer || !ytReady) return;
-      ytPlayer.seekTo(0, true);
-      ytPlayer.playVideo();
-      // Also restart the background YouTube player
-      if (bgReady && bgPlayer) {
-        bgPlayer.seekTo(0, true);
-        bgPlayer.playVideo();
-      }
+      if (!streamPlayer || !streamReady) return;
+      streamPlayer.currentTime = 0;
+      safePlay();
     });
   }
 

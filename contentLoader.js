@@ -44,6 +44,17 @@
       if (!og) { og = document.createElement('meta'); og.setAttribute('property', prop); document.head.appendChild(og); }
       og.setAttribute('content', ogTags[prop]);
     }
+    var twitterTags = {
+      'twitter:title': m.title,
+      'twitter:description': m.description,
+      'twitter:image': m.ogImage,
+    };
+    for (var name in twitterTags) {
+      if (!twitterTags[name]) continue;
+      var twitter = q('meta[name="' + name + '"]');
+      if (!twitter) { twitter = document.createElement('meta'); twitter.setAttribute('name', name); document.head.appendChild(twitter); }
+      twitter.setAttribute('content', twitterTags[name]);
+    }
   }
 
   // ─── 2. LOGO ─────────────────────────────────────────────
@@ -51,37 +62,34 @@
     qa('a.app-logo').forEach(function (link) {
       var svg = link.querySelector('svg');
       if (svg) svg.remove();
-      var existing = link.querySelector('img.site-logo');
-      if (!existing) {
-        var img = document.createElement('img');
-        img.className = 'site-logo';
-        img.src = SITE.logo.src;
-        img.alt = SITE.logo.alt || '';
-        img.width = SITE.logo.width || 167;
-        img.height = SITE.logo.height || 45;
-        img.style.display = 'block';
+      var img = link.querySelector('img');
+      if (!img) {
+        img = document.createElement('img');
         link.prepend(img);
       }
+      img.className = 'site-logo logo-img';
+      img.src = SITE.logo.src;
+      img.alt = SITE.logo.alt || '';
+      img.width = SITE.logo.width || 167;
+      img.height = SITE.logo.height || 45;
+      img.style.display = 'block';
     });
   }
 
   // ─── 3. HERO VIDEO + POSTER ──────────────────────────────
-  var heroVideo = dc('hero-video');
-  if (heroVideo && SITE.hero) {
-    if (SITE.hero.videoSrc) {
-      var heroSource = heroVideo.querySelector('source');
-      if (heroSource) { heroSource.src = SITE.hero.videoSrc; }
-      else { heroVideo.src = SITE.hero.videoSrc; }
-      heroVideo.load();
-      heroVideo.play().catch(function () {});
-    }
+  var heroPlayer = document.getElementById('stream-player');
+  if (heroPlayer && SITE.hero && SITE.hero.streamIframeSrc) {
+    heroPlayer.src = SITE.hero.streamIframeSrc;
   }
   var heroPoster = dc('hero-poster');
   if (heroPoster && SITE.hero && SITE.hero.posterImage) {
     heroPoster.src = SITE.hero.posterImage;
     heroPoster.srcset = SITE.hero.posterImage;
   }
-  // player-poster removed — YouTube embed replaces it
+  var playerCover = document.getElementById('player-cover');
+  if (playerCover && SITE.hero && SITE.hero.posterImage) {
+    playerCover.style.backgroundImage = 'url("' + SITE.hero.posterImage + '")';
+  }
 
   // ─── 4. TEXTOS PRINCIPAIS ────────────────────────────────
   var t = SITE.texts;

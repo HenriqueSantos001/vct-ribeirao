@@ -35,7 +35,7 @@
   }
 
   function safePlay() {
-    if (!streamPlayer || !streamReady) return;
+    if (!streamPlayer) return;
     var result = streamPlayer.play();
     if (result && typeof result.catch === 'function') {
       result.catch(function () {
@@ -78,10 +78,21 @@
     streamPlayer = window.Stream(streamFrame);
     coverFallback = setTimeout(dismissCover, 20000);
 
+    streamPlayer.muted = true;
+    streamPlayer.autoplay = true;
+    streamPlayer.loop = true;
+    updateMuteButton(true);
+    safePlay();
+
     streamPlayer.addEventListener('loadedmetadata', function () {
       streamReady = true;
-      streamPlayer.muted = true;
-      updateMuteButton(true);
+    });
+
+    streamPlayer.addEventListener('loadeddata', function () {
+      dismissCover();
+    });
+
+    streamPlayer.addEventListener('canplay', function () {
       safePlay();
     });
 
